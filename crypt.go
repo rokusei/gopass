@@ -8,7 +8,15 @@ import (
 	"errors"
 )
 
+var ErrPlaintextEmpty = errors.New("plaintext is empty")
+var ErrCiphertextEmpty = errors.New("ciphertext is empty")
+var ErrCiphertextTooShort = errors.New("ciphertext too short")
+var ErrCiphertextNotMultiple = errors.New("ciphertext is not a multiple of the AES block size")
+
 func Encrypt(plaintext, key []byte) ([]byte, error) {
+	if len(plaintext) == 0 {
+		return []byte{}, ErrPlaintextEmpty
+	}
 	// pad if plaintext is not a multiple of the blocksize
 	if len(plaintext)%aes.BlockSize != 0 {
 		padding := (aes.BlockSize - len(plaintext)%aes.BlockSize)
@@ -40,16 +48,21 @@ func Encrypt(plaintext, key []byte) ([]byte, error) {
 }
 
 func Decrypt(ciphertext, key []byte) ([]byte, error) {
-	// ensure
+	// ensure ciphertext contains atleast a block (which is the IV)
 	if len(ciphertext) < aes.BlockSize {
-		return []byte{}, errors.New("ciphertext too short")
+		return []byte{}, ErrCiphertextTooShort
 	}
 	iv := ciphertext[:aes.BlockSize]
 	ciphertext = ciphertext[aes.BlockSize:]
 
+	// ensure ciphertext (minus IV) isn't blank
+	if len(ciphertext) == 0 {
+		return []byte{}, ErrCiphertextEmpty
+	}
+
 	// ensure ciphertext is a multiple of the block size
 	if len(ciphertext)%aes.BlockSize != 0 {
-		return []byte{}, errors.New("ciphertext is not a multiple of the block size")
+		return []byte{}, ErrCiphertextNotMultiple
 	}
 
 	// create new aes cipher using provided key
@@ -62,5 +75,16 @@ func Decrypt(ciphertext, key []byte) ([]byte, error) {
 	plaintext := make([]byte, len(ciphertext))
 	mode := cipher.NewCBCDecrypter(block, iv)
 	mode.CryptBlocks(plaintext, ciphertext)
-	return ciphertext, nil
+
+	last := int(plaintext[len(plaintext)-1:][0])
+	if len(plaintext) > last && last > 0 && last < 15 {
+		for i := len(plaintext) - last; i < len(plaintext); i++ {
+			if plaintext[i] != byte(last) {
+				// not actually padded
+				return plaintext, nil
+			}
+		}
+		plaintext = plaintext[:len(plaintext)-last]
+	}
+	return plaintext, nil
 }
