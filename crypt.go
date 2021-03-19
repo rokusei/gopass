@@ -13,7 +13,7 @@ var ErrCiphertextEmpty = errors.New("ciphertext is empty")
 var ErrCiphertextTooShort = errors.New("ciphertext too short")
 var ErrCiphertextNotMultiple = errors.New("ciphertext is not a multiple of the AES block size")
 
-func Encrypt(plaintext, key []byte) ([]byte, error) {
+func Encrypt(plaintext []byte, key EncryptionKey) ([]byte, error) {
 	if len(plaintext) == 0 {
 		return []byte{}, ErrPlaintextEmpty
 	}
@@ -47,7 +47,7 @@ func Encrypt(plaintext, key []byte) ([]byte, error) {
 	return append(iv, ciphertext...), nil
 }
 
-func Decrypt(ciphertext, key []byte) ([]byte, error) {
+func Decrypt(ciphertext []byte, key EncryptionKey) ([]byte, error) {
 	// ensure ciphertext contains atleast a block (which is the IV)
 	if len(ciphertext) < aes.BlockSize {
 		return []byte{}, ErrCiphertextTooShort
@@ -87,4 +87,41 @@ func Decrypt(ciphertext, key []byte) ([]byte, error) {
 		plaintext = plaintext[:len(plaintext)-last]
 	}
 	return plaintext, nil
+}
+
+// Given an encrypted blob, re-encrypt it using a new key
+func Reencrypt(ciphertext []byte, oldKey EncryptionKey, newKey EncryptionKey) ([]byte, error) {
+	p, err := Decrypt(ciphertext, oldKey)
+	if err != nil {
+		return []byte{}, nil
+	}
+	ciphertext, err = Encrypt(p, newKey)
+	if err != nil {
+		return []byte{}, nil
+	}
+	return ciphertext, nil
+}
+
+func MustEncrypt(plaintext []byte, key EncryptionKey) []byte {
+	c, err := Encrypt(plaintext, key)
+	if err != nil {
+		panic(err)
+	}
+	return c
+}
+
+func MustDecrypt(ciphertext []byte, key EncryptionKey) []byte {
+	p, err := Decrypt(ciphertext, key)
+	if err != nil {
+		panic(err)
+	}
+	return p
+}
+
+func MustReecrypt(ciphertext []byte, oldKey EncryptionKey, newKey EncryptionKey) []byte {
+	c, err := Reencrypt(ciphertext, oldKey, newKey)
+	if err != nil {
+		panic(err)
+	}
+	return c
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/nwtgck/go-fakelish"
 )
 
-func GenerateSalt(words int) []byte {
+func generateSalt(words int) []byte {
 	w := make([]string, words)
 	for i := 0; i < words; i++ {
 		w[i] = fakelish.GenerateFakeWord(3, 8)
@@ -19,13 +19,13 @@ func GenerateSalt(words int) []byte {
 	return []byte(strings.Join(w, "-"))
 }
 
-func GenerateRandomSalt() []byte {
+func generateRandomSalt() []byte {
 	rand.Seed(time.Now().Unix())
-	return GenerateSalt(4 + rand.Int()%3)
+	return generateSalt(4 + rand.Int()%3)
 }
 
-func SaltQR(b []byte) []byte {
+func GenerateSaltQR(b []byte) []byte {
 	buf := new(bytes.Buffer)
-	qrterminal.Generate(string(b), qrterminal.L, buf)
+	qrterminal.Generate(string(b), qrterminal.M, buf)
 	return buf.Bytes()
 }

@@ -133,3 +133,74 @@ func Test_EncryptDecrypt(t *testing.T) {
 		require.Equal(t, test.expected, plaintext, test.name)
 	}
 }
+
+func Test_MustEncryptDecrypt(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    []byte
+		key      []byte
+		expected []byte
+		enc_err  error
+		dec_err  error
+	}{
+		{
+			name:     "aes128, input < blocksize (padded)",
+			input:    []byte("abc123"),
+			key:      DecodeString("6368616e676520746869732070617373"),
+			expected: []byte("abc123"),
+		},
+		{
+			name:     "aes128, input == blocksize (unpadded)",
+			input:    []byte("abcdefgh12345678"),
+			key:      DecodeString("6368616e676520746869732070617373"),
+			expected: []byte("abcdefgh12345678"),
+		},
+		{
+			name:     "aes128, input > blocksize (padded)",
+			input:    []byte("abcdefhijl1234567890"),
+			key:      DecodeString("6368616e676520746869732070617373"),
+			expected: []byte("abcdefhijl1234567890"),
+		},
+		{
+			name:     "aes192, input < blocksize (padded)",
+			input:    []byte("abc123"),
+			key:      DecodeString("6368616e6765207468697320706173736368616e67652074"),
+			expected: []byte("abc123"),
+		},
+		{
+			name:     "aes192, input == blocksize (unpadded)",
+			input:    []byte("abcdefgh12345678"),
+			key:      DecodeString("6368616e6765207468697320706173736368616e67652074"),
+			expected: []byte("abcdefgh12345678"),
+		},
+		{
+			name:     "aes192, input > blocksize (padded)",
+			input:    []byte("abcdefhijl1234567890"),
+			key:      DecodeString("6368616e6765207468697320706173736368616e67652074"),
+			expected: []byte("abcdefhijl1234567890"),
+		},
+		{
+			name:     "aes256, input < blocksize (padded)",
+			input:    []byte("abc123"),
+			key:      DecodeString("6368616e6765207468697320706173736368616e676520746869732070617373"),
+			expected: []byte("abc123"),
+		},
+		{
+			name:     "aes256, input == blocksize (unpadded)",
+			input:    []byte("abcdefgh12345678"),
+			key:      DecodeString("6368616e6765207468697320706173736368616e676520746869732070617373"),
+			expected: []byte("abcdefgh12345678"),
+		},
+		{
+			name:     "aes256, input > blocksize (padded)",
+			input:    []byte("abcdefhijl1234567890"),
+			key:      DecodeString("6368616e6765207468697320706173736368616e676520746869732070617373"),
+			expected: []byte("abcdefhijl1234567890"),
+		},
+	}
+	for _, test := range testCases {
+		ciphertext := MustEncrypt(test.input, test.key)
+		plaintext := MustDecrypt(ciphertext, test.key)
+		require.Equal(t, test.expected, plaintext, test.name)
+	}
+}
