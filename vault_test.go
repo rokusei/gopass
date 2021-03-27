@@ -36,26 +36,27 @@ func Test_generateEncryptionKeyAuthenticationHash(t *testing.T) {
 	}
 }
 
-func Test_GenerateAuthEncHashesEncryptDecrypt(t *testing.T) {
+func Test_GenerateVaultEncryptDecrypt(t *testing.T) {
 	tests := 3
 	ahs := make([][]byte, tests)
 	ehs := make([][]byte, tests)
 	salts := make([][]byte, tests)
 	for i := 0; i < tests; i++ {
 		mp := "test"
-		ah, eh, salt, err := GenerateAuthEncHashes(mp)
-		ahs[i] = ah
-		ehs[i] = eh
-		salts[i] = salt
+		vs, err := GenerateVaultSecrets(mp)
+		ahs[i] = vs.AuthenticationHash
+		ehs[i] = vs.EncryptionKey
+		salts[i] = vs.Salt
 		require.NoError(t, err)
-		require.Len(t, ah, 64)
-		require.Len(t, eh, 32)
-		require.GreaterOrEqual(t, bytes.Count(salt, []byte("-")), 3)
-		t.Logf("Master Password: %s\nEncryptionKey: %s\nAuthenticationHash: %s\nSalt: %s\n", mp, hex.EncodeToString(eh), hex.EncodeToString(ah), salt)
+		require.Len(t, vs.AuthenticationHash, 64)
+		require.Len(t, vs.EncryptionKey, 32)
+		require.GreaterOrEqual(t, bytes.Count(vs.Salt, []byte("-")), 3)
+		t.Logf("Master Password: %s\nEncryptionKey: %s\nAuthenticationHash: %s\nSalt: %s\n",
+			mp, hex.EncodeToString(vs.EncryptionKey), hex.EncodeToString(vs.AuthenticationHash), vs.Salt)
 		original := "hi"
-		ciphertext, err := Encrypt([]byte(original), eh)
+		ciphertext, err := Encrypt([]byte(original), vs.EncryptionKey)
 		require.NoError(t, err)
-		plain, err := Decrypt(ciphertext, eh)
+		plain, err := Decrypt(ciphertext, vs.EncryptionKey)
 		require.NoError(t, err)
 		require.Equal(t, original, string(plain))
 	}
